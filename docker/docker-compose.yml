@@ -1,0 +1,74 @@
+version: '3.7'
+services:
+    web:
+        build: services/nginx
+        restart: "${DOCKER_RESTART_POLICY:-no}"
+        volumes:
+            - ../bedrock/:/var/www/html
+            - ./services/nginx/conf/:/etc/nginx/templates/
+            - ./certs:/etc/certs
+        environment:
+            - TZ=Australia/Sydney
+            - NGINX_ENVSUBST_TEMPLATE_SUFFIX=.conf
+            - DOMAIN=${DOMAIN}
+            - VIRTUAL_HOST=${DOMAIN}
+        ports:
+            - '80:80'
+            - '443:443'
+        networks:
+            - bedrock-docker
+    db:
+        image: mysql:5.7
+        restart: "${DOCKER_RESTART_POLICY:-no}"
+        volumes:
+            - ./data/db/:/var/lib/mysql
+        environment:
+            - TZ=Australia/Sydney
+            - MYSQL_DATABASE=${DB_NAME:-phm-wp}
+            - MYSQL_USER=${DB_USR:-phm}
+            - MYSQL_PASSWORD=${DB_USR_PASSWORD:-phm*123}
+            - MYSQL_ROOT_PASSWORD=${DB_ROOT_PASSWORD:-pass*123}
+        ports:
+            - '3306:3306'
+        networks:
+            - bedrock-docker
+    wordpress:
+        build: services/php
+        restart: "${DOCKER_RESTART_POLICY:-no}"
+        volumes:
+            - ../bedrock/:/var/www/html
+            - ../services/php/conf/php.ini:/usr/local/etc/php/conf.d/php.ini
+        environment:
+            - TZ=Australia/Sydney
+            - DB_NAME=${DB_NAME:-phm-wp}
+            - DB_USER=${DB_USR:-phm}
+            - DB_PASSWORD=${DB_USR_PASSWORD:-phm*123}
+            - DB_HOST=db
+            - DB_PREFIX=${DB_TABLE_PREFIX:-phm_}
+            - WP_ENV=${WP_ENV:-development}
+            - WP_HOME=${WP_HOME:-https://bedrock-docker.local/}
+            - WP_SITEURL=${WP_SITEURL:-https://bedrock-docker.local/wp/}
+            - WP_ADMIN_USER=${WP_ADMIN_USER:-admin}
+            - WP_ADMIN_EMAIL=${WP_ADMIN_EMAIL:-nathan.utama@maas.museum}
+            - WP_ADMIN_PASSWORD=${WP_ADMIN_PASSWORD:-wpadmin*123}
+            - DISABLE_WP_CRON="true"
+            - AUTH_KEY
+            - SECURE_AUTH_KEY
+            - LOGGED_IN_KEY
+            - NONCE_KEY
+            - AUTH_SALT
+            - SECURE_AUTH_SALT
+            - LOGGED_IN_SALT
+            - NONCE_SALT
+        depends_on:
+            - db
+        networks:
+            - bedrock-docker
+
+networks:
+  bedrock-docker:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.20.0.0/16

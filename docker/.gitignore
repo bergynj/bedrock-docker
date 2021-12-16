@@ -1,0 +1,20 @@
+# Dotenv
+.env
+.env.*
+!.env.example
+
+# Database volume
+data/
+
+# Certs
+certs/
+
+# Logs
+logs/
+
+# Vagrant
+bin
+.vagrant
+
+# Custom
+.DS_Store
